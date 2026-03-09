@@ -1,10 +1,12 @@
 import openai
 import streamlit as st
-
+from utils.layout import setup_page
 from utils.data_loader import load_merged_data
 from utils.chatbot import sanitize_input, query_llm
 
-st.title("Chat with Your Data")
+setup_page("Chat")
+
+st.markdown("### Chat with Your Data")
 st.caption(
     "Ask questions about your marketing campaigns, engagement, leads, "
     "funnel performance, or anything in the dataset."
