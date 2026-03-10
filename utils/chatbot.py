@@ -118,8 +118,8 @@ def validate_response(response: str) -> str:
     return response
 
 
-def _get_client() -> openai.OpenAI:
-    api_key = os.environ.get("OPENAI_API_KEY")
+def _get_client(api_key_override: str | None = None) -> openai.OpenAI:
+    api_key = api_key_override or os.environ.get("OPENAI_API_KEY")
     if not api_key:
         raise ValueError(
             "OPENAI_API_KEY environment variable is not set. "
@@ -129,12 +129,12 @@ def _get_client() -> openai.OpenAI:
     return openai.OpenAI(api_key=api_key)
 
 
-def query_llm(messages: list[dict], df: pd.DataFrame) -> tuple[str, dict]:
+def query_llm(messages: list[dict], df: pd.DataFrame, api_key: str | None = None) -> tuple[str, dict]:
     """Send conversation to OpenAI and return (reply, usage_dict).
 
     usage_dict has keys: prompt_tokens, completion_tokens, total_tokens.
     """
-    client = _get_client()
+    client = _get_client(api_key_override=api_key)
     system_prompt = _build_system_prompt(df)
     full_messages = [{"role": "system", "content": system_prompt}] + messages
 

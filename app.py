@@ -1,3 +1,4 @@
+import math
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
@@ -69,17 +70,46 @@ with left2:
     ct_counts = df.groupby("content_type")["campaign_id"].count().reset_index()
     ct_counts.columns = ["Content Type", "Campaigns"]
     if ct_counts["Campaigns"].sum() > 0:
-        fig3 = px.pie(
-            ct_counts,
-            names="Content Type",
-            values="Campaigns",
+        ct_sorted = ct_counts.sort_values("Campaigns", ascending=False)
+        labels = ct_sorted["Content Type"].tolist()
+        values = ct_sorted["Campaigns"].tolist()
+        fig3 = go.Figure(go.Pie(
+            labels=labels,
+            values=values,
             hole=0.45,
-        )
-        fig3.update_traces(textposition="inside", textinfo="label+value")
+            sort=False,
+            textinfo="label",
+            textposition="outside",
+            textfont=dict(size=11),
+            outsidetextfont=dict(size=11),
+            marker=dict(colors=px.colors.qualitative.Set2),
+        ))
+        total = sum(values)
+        cumsum = 0
+        r = 0.35
+        for val in values:
+            center_angle = (cumsum + val / 2) / total * 360
+            cumsum += val
+            rad = math.radians(center_angle)
+            x = 0.5 + r * math.sin(rad)
+            y = 0.5 + r * math.cos(rad)
+            fig3.add_annotation(
+                x=x, y=y, text=str(int(val)), showarrow=False,
+                xref="paper", yref="paper",
+                font=dict(size=12, color="white"),
+            )
         fig3.update_layout(
-            margin=dict(l=20, r=20, t=40, b=80),
-            height=320,
-            legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+            margin=dict(l=60, r=60, t=40, b=100),
+            height=380,
+            legend=dict(
+                orientation="h",
+                yanchor="top",
+                y=-0.15,
+                xanchor="center",
+                x=0.5,
+                font=dict(size=11),
+            ),
+            showlegend=True,
         )
         st.plotly_chart(fig3, use_container_width=True)
     else:

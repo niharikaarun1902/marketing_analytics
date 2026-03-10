@@ -1,3 +1,4 @@
+import math
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
@@ -138,36 +139,86 @@ with content_col:
         classified["Funnel Stage"] = classified.apply(classify_funnel_stage, axis=1)
 
         cls1, cls2, cls3 = st.columns(3)
+        def _add_pie_numbers(fig, values, r=0.32):
+            total = sum(values)
+            if total == 0:
+                return
+            cumsum = 0
+            for val in values:
+                center_angle = (cumsum + val / 2) / total * 360
+                cumsum += val
+                rad = math.radians(center_angle)
+                x = 0.5 + r * math.sin(rad)
+                y = 0.5 + r * math.cos(rad)
+                fig.add_annotation(
+                    x=x, y=y, text=str(int(val)), showarrow=False,
+                    xref="paper", yref="paper",
+                    font=dict(size=10, color="white"),
+                )
+
         with cls1:
             theme_counts = classified["Theme"].value_counts().reset_index()
             theme_counts.columns = ["Theme", "Count"]
-            fig_theme = px.pie(theme_counts, names="Theme", values="Count", hole=0.4)
+            theme_sorted = theme_counts.sort_values("Count", ascending=False)
+            fig_theme = go.Figure(go.Pie(
+                labels=theme_sorted["Theme"].tolist(),
+                values=theme_sorted["Count"].tolist(),
+                hole=0.4,
+                sort=False,
+                textinfo="label",
+                textposition="outside",
+                textfont=dict(size=10),
+                marker=dict(colors=px.colors.qualitative.Set2),
+            ))
+            _add_pie_numbers(fig_theme, theme_sorted["Count"].tolist())
             fig_theme.update_layout(
-                title="By Theme", height=280,
-                margin=dict(t=40, b=0),
-                legend=dict(orientation="h", y=-0.15, xanchor="center", x=0.5),
+                title="By Theme", height=300,
+                margin=dict(t=40, b=80, l=50, r=50),
+                legend=dict(orientation="h", y=-0.2, xanchor="center", x=0.5, font=dict(size=10)),
             )
             st.plotly_chart(fig_theme, use_container_width=True)
 
         with cls2:
             intent_counts = classified["Intent"].value_counts().reset_index()
             intent_counts.columns = ["Intent", "Count"]
-            fig_intent = px.pie(intent_counts, names="Intent", values="Count", hole=0.4)
+            intent_sorted = intent_counts.sort_values("Count", ascending=False)
+            fig_intent = go.Figure(go.Pie(
+                labels=intent_sorted["Intent"].tolist(),
+                values=intent_sorted["Count"].tolist(),
+                hole=0.4,
+                sort=False,
+                textinfo="label",
+                textposition="outside",
+                textfont=dict(size=10),
+                marker=dict(colors=px.colors.qualitative.Set2),
+            ))
+            _add_pie_numbers(fig_intent, intent_sorted["Count"].tolist())
             fig_intent.update_layout(
-                title="By Intent", height=280,
-                margin=dict(t=40, b=0),
-                legend=dict(orientation="h", y=-0.15, xanchor="center", x=0.5),
+                title="By Intent", height=300,
+                margin=dict(t=40, b=80, l=50, r=50),
+                legend=dict(orientation="h", y=-0.2, xanchor="center", x=0.5, font=dict(size=10)),
             )
             st.plotly_chart(fig_intent, use_container_width=True)
 
         with cls3:
             stage_counts = classified["Funnel Stage"].value_counts().reset_index()
             stage_counts.columns = ["Funnel Stage", "Count"]
-            fig_stage = px.pie(stage_counts, names="Funnel Stage", values="Count", hole=0.4)
+            stage_sorted = stage_counts.sort_values("Count", ascending=False)
+            fig_stage = go.Figure(go.Pie(
+                labels=stage_sorted["Funnel Stage"].tolist(),
+                values=stage_sorted["Count"].tolist(),
+                hole=0.4,
+                sort=False,
+                textinfo="label",
+                textposition="outside",
+                textfont=dict(size=10),
+                marker=dict(colors=px.colors.qualitative.Set2),
+            ))
+            _add_pie_numbers(fig_stage, stage_sorted["Count"].tolist())
             fig_stage.update_layout(
-                title="By Funnel Stage", height=280,
-                margin=dict(t=40, b=0),
-                legend=dict(orientation="h", y=-0.15, xanchor="center", x=0.5),
+                title="By Funnel Stage", height=300,
+                margin=dict(t=40, b=80, l=50, r=50),
+                legend=dict(orientation="h", y=-0.2, xanchor="center", x=0.5, font=dict(size=10)),
             )
             st.plotly_chart(fig_stage, use_container_width=True)
 

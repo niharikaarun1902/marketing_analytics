@@ -1,3 +1,4 @@
+import os
 import openai
 import streamlit as st
 from utils.layout import setup_page
@@ -6,35 +7,53 @@ from utils.chatbot import sanitize_input, query_llm
 
 setup_page("Chat")
 
+# --- API key: env, Streamlit secrets, or in-app input ---
+def _get_api_key() -> str | None:
+    key = os.environ.get("OPENAI_API_KEY")
+    if key:
+        return key
+    try:
+        key = st.secrets.get("OPENAI_API_KEY")
+        if key:
+            os.environ["OPENAI_API_KEY"] = key
+            return key
+    except Exception:
+        pass
+    return st.session_state.get("openai_api_key")
+
+if "chat_history" not in st.session_state:
+    st.session_state["chat_history"] = []
+
+api_key = _get_api_key()
+if not api_key:
+    st.info("🔑 **Set your OpenAI API key** to use Ask AI. Paste it below (stored for this session only) or add it to `.streamlit/secrets.toml`.")
+    key_input = st.text_input(
+        "OpenAI API Key",
+        type="password",
+        placeholder="sk-...",
+        key="api_key_input",
+        help="Get your key at platform.openai.com/api-keys",
+    )
+    if key_input and key_input.strip().startswith("sk-"):
+        st.session_state["openai_api_key"] = key_input.strip()
+        os.environ["OPENAI_API_KEY"] = key_input.strip()
+        st.success("API key saved for this session. You can ask questions now.")
+        st.rerun()
+    elif key_input:
+        st.warning("Key should start with 'sk-'. Check platform.openai.com/api-keys")
+    st.markdown("---")
+elif "openai_api_key" in st.session_state:
+    if st.button("🔑 Change API key", key="change_key"):
+        del st.session_state["openai_api_key"]
+        if os.environ.get("OPENAI_API_KEY") == api_key:
+            del os.environ["OPENAI_API_KEY"]
+        st.rerun()
+
 st.markdown("### Chat with Your Data")
 st.caption(
     "Ask questions about your marketing campaigns, engagement, leads, "
     "funnel performance, or anything in the dataset."
 )
-
-if "chat_history" not in st.session_state:
-    st.session_state["chat_history"] = []
-if "chat_usage" not in st.session_state:
-    st.session_state["chat_usage"] = {
-        "prompt_tokens": 0,
-        "completion_tokens": 0,
-        "total_tokens": 0,
-        "request_count": 0,
-    }
-
-# --- Usage metrics (session) ---
-u = st.session_state["chat_usage"]
-if u["request_count"] > 0:
-    with st.expander("📊 API usage this session", expanded=False):
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Prompt tokens", f"{u['prompt_tokens']:,}")
-        c2.metric("Completion tokens", f"{u['completion_tokens']:,}")
-        c3.metric("Total tokens", f"{u['total_tokens']:,}")
-        c4.metric("Requests", u["request_count"])
-        # GPT-4.1-mini approx: $0.15/1M input, $0.60/1M output (as of 2024)
-        est_cost = (u["prompt_tokens"] * 0.15 + u["completion_tokens"] * 0.60) / 1_000_000
-        st.caption(f"Estimated cost this session: ~${est_cost:.4f} (GPT-4.1-mini pricing). Check [platform.openai.com](https://platform.openai.com/usage) for account limits.")
-
 st.markdown("")
 
 for msg in st.session_state["chat_history"]:
@@ -67,11 +86,7 @@ if user_input:
                 for m in st.session_state["chat_history"]
             ]
             with st.spinner("Thinking…"):
-                reply, usage_dict = query_llm(conversation, df)
-            st.session_state["chat_usage"]["prompt_tokens"] += usage_dict["prompt_tokens"]
-            st.session_state["chat_usage"]["completion_tokens"] += usage_dict["completion_tokens"]
-            st.session_state["chat_usage"]["total_tokens"] += usage_dict["total_tokens"]
-            st.session_state["chat_usage"]["request_count"] += 1
+                reply, _ = query_llm(conversation, df, api_key=api_key)
         except ValueError as exc:
             reply = str(exc)
         except openai.AuthenticationError:

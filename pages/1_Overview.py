@@ -28,7 +28,7 @@ with content_col:
 
     st.markdown("")
 
-    col_left, col_mid, col_right = st.columns(3)
+    col_left, col_right = st.columns(2)
 
     with col_left:
         st.markdown("#### Campaigns by Platform")
@@ -41,7 +41,7 @@ with content_col:
         fig1.update_layout(showlegend=False, margin=dict(t=10, b=0))
         st.plotly_chart(fig1, use_container_width=True)
 
-    with col_mid:
+    with col_right:
         st.markdown("#### Campaigns by Content Type")
         ct_counts = df.groupby("content_type")["campaign_id"].count().reset_index()
         ct_counts.columns = ["Content Type", "Campaigns"]
@@ -52,13 +52,13 @@ with content_col:
         fig2.update_layout(showlegend=False, margin=dict(t=10, b=0))
         st.plotly_chart(fig2, use_container_width=True)
 
-    with col_right:
-        st.markdown("#### Campaigns by Audience Segment")
-        seg_counts = df.groupby("audience_segment")["campaign_id"].count().reset_index()
-        seg_counts.columns = ["Audience Segment", "Campaigns"]
-        fig3 = px.bar(
-            seg_counts, x="Audience Segment", y="Campaigns",
-            color="Audience Segment", text_auto=True,
-        )
-        fig3.update_layout(showlegend=False, margin=dict(t=10, b=0))
-        st.plotly_chart(fig3, use_container_width=True)
+    st.markdown("")
+    st.markdown("#### Campaigns by Audience Segment")
+    seg_counts = df.groupby("audience_segment")["campaign_id"].count().reset_index()
+    seg_counts.columns = ["Audience Segment", "Campaigns"]
+    fig3 = px.bar(
+        seg_counts, x="Audience Segment", y="Campaigns",
+        color="Audience Segment", text_auto=True,
+    )
+    fig3.update_layout(showlegend=False, margin=dict(t=10, b=0))
+    st.plotly_chart(fig3, use_container_width=True)
