@@ -129,14 +129,25 @@ def _get_client() -> openai.OpenAI:
     return openai.OpenAI(api_key=api_key)
 
 
-def query_llm(messages: list[dict], df: pd.DataFrame) -> str:
-    """Send conversation to OpenAI and return the assistant's reply."""
+def query_llm(messages: list[dict], df: pd.DataFrame) -> tuple[str, dict]:
+    """Send conversation to OpenAI and return (reply, usage_dict).
+
+    usage_dict has keys: prompt_tokens, completion_tokens, total_tokens.
+    """
     client = _get_client()
     system_prompt = _build_system_prompt(df)
     full_messages = [{"role": "system", "content": system_prompt}] + messages
 
     response = client.chat.completions.create(model=MODEL, messages=full_messages)
     raw = response.choices[0].message.content or ""
-    return validate_response(raw)
+    reply = validate_response(raw)
+
+    usage = response.usage
+    usage_dict = {
+        "prompt_tokens": getattr(usage, "prompt_tokens", 0) or 0,
+        "completion_tokens": getattr(usage, "completion_tokens", 0) or 0,
+        "total_tokens": getattr(usage, "total_tokens", 0) or 0,
+    }
+    return reply, usage_dict
 
 

@@ -3,7 +3,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from utils.layout import setup_page
 from utils.filters import apply_filters
-from utils.metrics import platform_metrics, content_type_metrics, funnel_metrics
+from utils.metrics import platform_metrics, content_type_metrics, segment_metrics, funnel_metrics
 from utils.insights import get_best_platform, get_best_content_type, get_biggest_dropoff
 from utils.claude_layer import (
     classify_campaign_theme,
@@ -105,6 +105,30 @@ with content_col:
                 legend=dict(orientation="h", y=-0.15, xanchor="center", x=0.5),
             )
             st.plotly_chart(fig_cont, use_container_width=True)
+
+        st.markdown("#### Audience: Reach vs Conversion")
+        sm = segment_metrics(df)
+        fig_aud = go.Figure()
+        fig_aud.add_trace(go.Bar(
+            name="Impressions",
+            x=sm["audience_segment"], y=sm["impressions"],
+            text=sm["impressions"].apply(lambda v: f"{v:,}"),
+            textposition="outside", yaxis="y",
+        ))
+        fig_aud.add_trace(go.Bar(
+            name="Conv. Rate (%)",
+            x=sm["audience_segment"], y=sm["conversion_rate"],
+            text=sm["conversion_rate"].apply(lambda v: f"{v}%"),
+            textposition="outside", yaxis="y2",
+        ))
+        fig_aud.update_layout(
+            barmode="group", height=380,
+            margin=dict(t=10, b=0),
+            yaxis=dict(title="Impressions", showgrid=False),
+            yaxis2=dict(title="Conv. Rate (%)", overlaying="y", side="right", showgrid=False),
+            legend=dict(orientation="h", y=-0.15, xanchor="center", x=0.5),
+        )
+        st.plotly_chart(fig_aud, use_container_width=True)
 
         # --- Campaign classification breakdown ---
         st.markdown("#### Campaign Classification")

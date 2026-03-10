@@ -1,638 +1,682 @@
-# Marketing Analytics Dashboard — Complete Project Documentation
+# Marketing Analytics Dashboard — Complete Guide
+
+**A full guide for anyone who uses, reviews, or works with this dashboard — whether you're a business leader, marketer, or developer.**
+
+---
 
 ## Table of Contents
 
-1. [Project Overview](#project-overview)
-2. [Architecture](#architecture)
-3. [Data Layer](#data-layer)
-4. [Utility Modules](#utility-modules)
-5. [Pages — Detailed Breakdown](#pages--detailed-breakdown)
-6. [AI Chatbot](#ai-chatbot)
-7. [Theming and Styling](#theming-and-styling)
-8. [Filters](#filters)
-9. [Navigation System](#navigation-system)
-10. [Configuration](#configuration)
-11. [Full Project Structure](#full-project-structure)
-12. [Metrics Reference](#metrics-reference)
+1. [What Is This Dashboard?](#1-what-is-this-dashboard)
+2. [How to Use the Dashboard](#2-how-to-use-the-dashboard)
+3. [Understanding the Data](#3-understanding-the-data)
+4. [Every Page Explained in Detail](#4-every-page-explained-in-detail)
+5. [Understanding the Metrics](#5-understanding-the-metrics)
+6. [The Filters — How They Work](#6-the-filters--how-they-work)
+7. [The Ask AI Chatbot](#7-the-ask-ai-chatbot)
+8. [Technical Architecture (For Developers)](#8-technical-architecture-for-developers)
+9. [Project File Structure](#9-project-file-structure)
+10. [Setup and Configuration](#10-setup-and-configuration)
 
 ---
 
-## Project Overview
+## 1. What Is This Dashboard?
 
-This is a **Streamlit-based marketing analytics dashboard** designed for founders, executives, and marketing teams to understand campaign performance end-to-end. It models a complete marketing workflow — from campaign publishing and engagement tracking to lead generation, funnel analysis, audience segmentation, and AI-powered intelligence.
+### In Plain Language
 
-**Key differentiators:**
+This is a **marketing analytics dashboard** — a web application that helps you understand how your marketing campaigns are performing. It shows you:
 
-- **No external databases or APIs** — all data lives in three CSV files, making it fully self-contained and portable.
-- **Rule-based intelligence layer** — automated campaign classification, funnel diagnosis, and executive recommendations without requiring an LLM.
-- **AI chatbot (GPT-4.1-mini)** — natural-language interface for querying the data, with three layers of prompt injection protection.
-- **Audience segment deep-dive** — identifies which audience segments convert best and deserve more investment.
-- **Interactive filters** — every analytics page supports real-time filtering by platform, content type, and audience segment.
+- **How many people saw your content** (impressions)
+- **How many people clicked** (clicks)
+- **How many people became leads** (people who gave you their contact info)
+- **How many people became customers** (conversions)
 
-**Tech stack:** Python, Streamlit, Pandas, Plotly, OpenAI API, NumPy.
+The dashboard breaks this down by **where** you published (LinkedIn, Instagram, Email, Website), **what type** of content you used (thought leadership posts, case studies, event promotions, etc.), and **who** you targeted (HR teams, startup founders, enterprise buyers, etc.).
 
----
+### Who Is It For?
 
-## Architecture
+- **Marketing managers** — to see which channels and content types work best
+- **Executives and founders** — to get a quick snapshot of campaign performance
+- **Content strategists** — to decide what to create more of
+- **Anyone** who needs to answer: "Is our marketing working? Where should we invest more?"
 
-The application follows a **multi-page Streamlit architecture** with shared utilities:
+### What Makes It Special?
 
-```
-User's Browser
-    │
-    ▼
-┌──────────────────────────────────┐
-│  Streamlit App (app.py)          │  ← Entry point / Home page
-│  ├── pages/1_Overview.py         │
-│  ├── pages/2_Channel_Performance │
-│  ├── pages/3_Content_Analysis    │
-│  ├── pages/4_Funnel_Analysis     │
-│  ├── pages/5_Claude_Insights     │
-│  ├── pages/6_Chat.py             │
-│  └── pages/7_Audience_Segments   │
-└───────────┬──────────────────────┘
-            │
-            ▼
-┌──────────────────────────────────┐
-│  Utility Layer (utils/)          │
-│  ├── layout.py     → Nav + CSS  │
-│  ├── filters.py    → Filtering  │
-│  ├── data_loader.py → CSV I/O   │
-│  ├── metrics.py    → KPI math   │
-│  ├── insights.py   → Rules      │
-│  ├── claude_layer.py → AI rules │
-│  └── chatbot.py    → OpenAI API │
-└───────────┬──────────────────────┘
-            │
-            ▼
-┌──────────────────────────────────┐
-│  Data Layer (data/)              │
-│  ├── campaigns.csv               │
-│  ├── engagement.csv              │
-│  └── leads.csv                   │
-└──────────────────────────────────┘
-```
+1. **No external connections** — All data comes from three simple spreadsheet files. No databases, no live API connections. Everything is self-contained.
 
-**Data flow:** Every page calls `apply_filters()` which internally calls `load_merged_data()` → loads all three CSVs → joins them on `campaign_id` → applies user-selected filters → returns a filtered DataFrame that the page then passes to the relevant metric/insight functions.
+2. **Built-in intelligence** — The dashboard automatically classifies your campaigns, finds problems in your funnel, and suggests what to do next. This is done with rules, not AI — so it's fast and consistent.
+
+3. **Ask AI feature** — You can type questions in plain English (e.g., "Which platform generates the most leads?") and get answers. This uses OpenAI's GPT model and requires an API key to work.
+
+4. **Filters on every page** — You can narrow down the view to specific platforms, content types, or audience segments and see how the numbers change.
 
 ---
 
-## Data Layer
+## 2. How to Use the Dashboard
 
-All data lives in `data/` as static CSV files. There are no live API connections, databases, or real-time feeds. The data is simulated to represent a realistic B2B SaaS marketing program.
+### First Time You Open It
 
-### campaigns.csv (48 campaigns)
+When you open the dashboard, you see:
 
-The core campaign metadata table. Each row is one marketing campaign.
+1. **A navigation bar at the top** — With links: Home, Overview, Channels, Content, Funnel, Insights, Audience, and **Ask AI** (the green button on the right).
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `campaign_id` | string | Unique identifier (C001–C048) |
-| `campaign_name` | string | Descriptive name (e.g., "AI Learning Launch") |
-| `platform` | string | Distribution channel: **LinkedIn**, **Instagram**, **Email**, **Website** |
-| `content_type` | string | Format: **Thought Leadership**, **Educational Post**, **Product Highlight**, **Event Promotion**, **Case Study** |
-| `topic` | string | Subject matter (e.g., "AI in Learning", "Marketing Automation") |
-| `audience_segment` | string | Target audience: **L&D Leaders**, **Startup Founders**, **HR Teams**, **Enterprise Buyers**, **Decision Makers** |
-| `publish_date` | string | Date published in DD-MM-YYYY format (March–April 2026) |
-| `status` | string | Always "Published" (simulates post-publish analytics) |
+2. **The Home page** — Which shows a quick summary of your key numbers and a few charts.
 
-**Why it exists:** Provides the dimensional context for every campaign — who it targets, where it runs, what format it takes. Every other table joins back to this through `campaign_id`.
+### Moving Between Pages
 
-### engagement.csv (48 rows)
+- **Click any link** in the top navigation bar to go to that section.
+- **Ask AI** is the green button — it opens a chat where you can ask questions about your data.
+- The **Marketing Analytics** text on the far left is the app title, not a link.
 
-Post-publish engagement metrics, one row per campaign.
+### Pages That Have Filters
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `campaign_id` | string | Foreign key to campaigns.csv |
-| `impressions` | int | Total times the content was displayed (3,900–16,200) |
-| `clicks` | int | Total click-throughs (250–670) |
-| `likes` | int | Social likes/reactions (0 for Email campaigns) |
-| `comments` | int | Social comments (0 for Email campaigns) |
-| `shares` | int | Social shares (0 for Email campaigns) |
+These pages have a **Filters** panel on the right side:
 
-**Data patterns:**
-- LinkedIn campaigns have the highest impressions (14,000–16,200) — positioned as the awareness channel.
-- Email campaigns have 0 likes/comments/shares (email doesn't have social engagement) but high clicks relative to impressions — positioned as a high-intent channel.
-- Instagram campaigns sit in the middle range for impressions (8,600–9,800).
+- Overview  
+- Channels  
+- Content  
+- Funnel  
+- Insights  
+- Audience  
 
-### leads.csv (48 rows)
+**Home** and **Ask AI** do not have filters. Home shows everything; Ask AI uses all data when answering.
 
-Lead generation and conversion outcomes, one row per campaign.
+### Using the Filters
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `campaign_id` | string | Foreign key to campaigns.csv |
-| `leads_generated` | int | Total leads captured (13–57) |
-| `qualified_leads` | int | Leads that passed qualification criteria (6–24) |
-| `conversions` | int | Leads that converted to customers (2–10) |
+Each filter is a dropdown where you can select one or more options:
 
-**Data patterns:**
-- Email and Event Promotion campaigns generate the most leads (36–57) — high-intent channels.
-- Website/Case Study campaigns have strong qualified-lead ratios — trust-building content.
-- Instagram campaigns generate fewer leads but still contribute to the pipeline.
+- **Platform** — LinkedIn, Instagram, Email, Website (select which channels to include)
+- **Content Type** — Thought Leadership, Educational Post, Product Highlight, Event Promotion, Case Study (select which content formats to include)
+- **Audience Segment** — L&D Leaders, Startup Founders, HR Teams, Enterprise Buyers, Decision Makers (select which target audiences to include)
 
-### How data is loaded
-
-`utils/data_loader.py` handles all data I/O:
-
-1. **`load_campaigns()`** — reads `campaigns.csv` and parses `publish_date` from DD-MM-YYYY to datetime.
-2. **`load_engagement()`** — reads `engagement.csv` as-is.
-3. **`load_leads()`** — reads `leads.csv` as-is.
-4. **`load_merged_data()`** — calls all three loaders, performs two left joins on `campaign_id`, and returns a single 48-row DataFrame with all columns from all three files.
-
-This merged DataFrame is the single source of truth used by every page and utility function.
+By default, **all options are selected**. When you remove a checkmark, that data is excluded from the charts and numbers on that page. The page updates immediately.
 
 ---
 
-## Utility Modules
+## 3. Understanding the Data
 
-### utils/metrics.py — KPI Calculations
+### Where Does the Data Come From?
 
-All mathematical calculations live here. Every page imports from this module rather than computing metrics inline.
+The dashboard reads from **three CSV files** (spreadsheets) stored in the `data` folder:
 
-**Base formulas:**
+1. **campaigns.csv** — A list of every marketing campaign, with details like name, platform, content type, audience, and publish date.
+2. **engagement.csv** — For each campaign: how many impressions, clicks, likes, comments, and shares it got.
+3. **leads.csv** — For each campaign: how many leads, qualified leads, and conversions it generated.
 
-| Function | Formula | Returns |
-|----------|---------|---------|
-| `calculate_ctr(clicks, impressions)` | (clicks / impressions) × 100 | float (%) |
-| `calculate_conversion_rate(conversions, leads)` | (conversions / leads) × 100 | float (%) |
-| `calculate_lead_rate(leads, clicks)` | (leads / clicks) × 100 | float (%) |
+These three files are **joined together** using the campaign ID, so each campaign has its full story: what it was, where it ran, how it performed, and what it produced.
 
-All three handle division-by-zero by returning 0.0.
+### What Each Data File Contains (In Detail)
 
-**Aggregation functions:**
+#### campaigns.csv (48 campaigns)
 
-| Function | Groups By | Returns | Used On |
-|----------|-----------|---------|---------|
-| `summarize_kpis(df)` | (none — totals) | dict with 9 KPIs | Home, Overview |
-| `platform_metrics(df)` | `platform` | DataFrame with per-platform metrics | Channels, Home, Insights |
-| `content_type_metrics(df)` | `content_type` | DataFrame with per-content-type metrics | Content, Insights |
-| `segment_metrics(df)` | `audience_segment` | DataFrame with per-segment metrics + `qualified_rate` | Audience |
-| `funnel_metrics(df)` | (none — stages) | list of dicts (stage name + value) | Funnel, Home, Insights |
+| Column | What It Means |
+|--------|---------------|
+| **campaign_id** | A unique code for each campaign (e.g., C001, C002). |
+| **campaign_name** | The name of the campaign (e.g., "AI Learning Launch", "Webinar Invite HR"). |
+| **platform** | Where the campaign was published: **LinkedIn**, **Instagram**, **Email**, or **Website**. |
+| **content_type** | The format of the content: **Thought Leadership** (opinion pieces, industry insights), **Educational Post** (how-to, tips), **Product Highlight** (feature demos, product info), **Event Promotion** (webinars, workshops, invites), or **Case Study** (customer success stories). |
+| **topic** | The subject matter (e.g., "AI in Learning", "Marketing Automation"). |
+| **audience_segment** | Who the campaign targeted: **L&D Leaders** (Learning & Development), **Startup Founders**, **HR Teams**, **Enterprise Buyers**, or **Decision Makers**. |
+| **publish_date** | When the campaign was published (dates in March–April 2026). |
+| **status** | Always "Published" — meaning the campaign has gone live. |
 
-Each aggregation function sums all engagement and lead columns per group, then appends calculated rate columns (CTR, conversion rate, lead rate). `segment_metrics()` additionally computes `qualified_rate` (qualified_leads / leads_generated × 100).
+#### engagement.csv (48 rows, one per campaign)
 
-### utils/insights.py — Rule-Based Business Insights
+| Column | What It Means |
+|--------|---------------|
+| **campaign_id** | Links to the campaign. |
+| **impressions** | How many times the content was displayed (shown on screen). This is "reach" — how many people could have seen it. |
+| **clicks** | How many times someone clicked on the content (e.g., a link, a CTA button). |
+| **likes** | Social media likes or reactions. (Email campaigns have 0 — email doesn't have likes.) |
+| **comments** | Social media comments. (Email campaigns have 0.) |
+| **shares** | Social media shares. (Email campaigns have 0.) |
 
-Deterministic logic that analyzes the data and produces actionable findings. No LLM is involved.
+#### leads.csv (48 rows, one per campaign)
 
-| Function | What It Does |
-|----------|-------------|
-| `get_best_platform(df)` | Returns a dict identifying the best platform for reach, clicks, leads, and conversion rate |
-| `get_best_content_type(df)` | Same as above but for content types |
-| `get_top_campaign(df)` | Returns the single campaign row with the most conversions |
-| `get_biggest_dropoff(df)` | Finds the funnel stage transition with the largest percentage loss |
-| `get_recommendations(df)` | Generates a list of recommendation strings based on conditional rules |
+| Column | What It Means |
+|--------|---------------|
+| **campaign_id** | Links to the campaign. |
+| **leads_generated** | How many people gave you their contact information (e.g., signed up, filled a form). |
+| **qualified_leads** | How many of those leads met your qualification criteria (e.g., budget, authority, need). |
+| **conversions** | How many of those leads became customers (signed, purchased, etc.). |
 
-**Recommendation rules in `get_recommendations()`:**
-- If a platform has above-median impressions but below-median CTR → "improve ad creative"
-- If a platform has above-median clicks but below-median lead rate → "review CTAs and landing pages"
-- If a platform has above-median conversion rate → "consider scaling budget"
-- If a content type has >55% qualified-lead ratio → "use deeper in the funnel"
-- If a content type has above-median impressions but below-median leads → "pair with stronger CTAs"
-- If the biggest funnel drop-off exceeds 80% → flag as critical
+### The Marketing Funnel (Why It Matters)
 
-### utils/claude_layer.py — Intelligence Classification Layer
+The dashboard uses a **funnel** model. Think of it like a pipe:
 
-Named "Claude-style" because it mimics the analytical reasoning of an AI assistant, but is entirely rule-based. No API calls.
+1. **Impressions** — Content is shown to many people (top of funnel).
+2. **Clicks** — Some of those people click (they're interested).
+3. **Leads** — Some of those who clicked give you their info (they're engaged).
+4. **Qualified Leads** — Some of those leads meet your criteria (they're serious).
+5. **Conversions** — Some of those qualified leads become customers (bottom of funnel).
 
-**Campaign classification:**
-
-| Function | Logic | Output |
-|----------|-------|--------|
-| `classify_campaign_theme(row)` | Maps `content_type` → Theme | "Awareness" (Thought Leadership, Educational Post), "Consideration" (Product Highlight), "Conversion" (Event Promotion, Case Study) |
-| `classify_campaign_intent(row)` | Maps `content_type` → Intent | "Brand Visibility", "Education", "Product Interest", "Event Registration / Lead Generation", "Trust Building / Conversion" |
-| `classify_funnel_stage(row)` | Uses CTR and conversion rate thresholds | "Bottom-of-Funnel" (conv rate > 30%), "Mid-Funnel" (CTR > 5%), "Top-of-Funnel" (default) |
-
-**Summary generators:**
-
-| Function | What It Produces |
-|----------|-----------------|
-| `summarize_platform_performance(df)` | Multi-sentence narrative about which platform is best for reach, conversion, and leads |
-| `summarize_content_performance(df)` | Narrative about which content type drives the most visibility, conversions, and qualified leads |
-| `identify_funnel_issue(df)` | Finds the biggest funnel drop-off and provides a contextual diagnosis with explanation and recommended fix |
-| `generate_founder_recommendations(df)` | Five executive-level recommendations combining platform, content, and funnel insights |
-
-**Funnel diagnosis detail:** `identify_funnel_issue()` maps each possible stage-to-stage drop-off to a specific explanation:
-- Impressions → Clicks: weak creative or poor targeting
-- Clicks → Leads: landing page friction or misaligned expectations
-- Leads → Qualified Leads: targeting criteria too broad
-- Qualified Leads → Conversions: sales process friction or pricing objections
-
-### utils/chatbot.py — OpenAI Integration with Guardrails
-
-Handles all communication with the OpenAI API (GPT-4.1-mini model) and implements a three-layer security system against prompt injection.
-
-**Layer 1: System Prompt Hardening** (`_build_system_prompt()`)
-
-The system prompt includes:
-- A unique sentinel string (`MARKETING_ANALYTICS_SYSTEM_BOUNDARY`) that should never appear in output
-- Explicit instructions to only answer marketing data questions
-- Explicit instructions to never follow user-embedded instructions that attempt role changes
-- The complete merged dataset as CSV (so the LLM can reference actual numbers)
-- Formula definitions for CTR, conversion rate, lead rate, and funnel stages
-- Recommendation logic rules matching the rule-based insights module
-
-**Layer 2: Input Sanitization** (`sanitize_input()`)
-
-Before any message reaches the LLM:
-- Messages over 1,000 characters are rejected
-- 15+ regex patterns detect common injection attempts:
-  - "ignore previous instructions", "disregard your rules"
-  - "you are now", "act as", "pretend to be"
-  - "reveal your prompt", "show me your system prompt"
-  - LLM-specific formatting markers (`[INST]`, `<<SYS>>`, `<system>`)
-
-If any pattern matches, the function returns a refusal message and the LLM is never called.
-
-**Layer 3: Output Validation** (`validate_response()`)
-
-After the LLM responds:
-- If any sentinel phrase from the system prompt appears in the output (indicating prompt leakage), the response is replaced with a safe error message
-- Responses exceeding 3,000 characters are truncated with a note
-
-**API setup:**
-- `_get_client()` reads `OPENAI_API_KEY` from environment variables
-- `query_llm()` prepends the system prompt, sends the full conversation history, and returns the validated response
-
-### utils/filters.py — Interactive Filters
-
-Renders three multiselect widgets that filter the merged dataset in real-time:
-
-| Filter | Column | Options |
-|--------|--------|---------|
-| Platform | `platform` | LinkedIn, Instagram, Email, Website |
-| Content Type | `content_type` | Thought Leadership, Educational Post, Product Highlight, Event Promotion, Case Study |
-| Audience Segment | `audience_segment` | L&D Leaders, Startup Founders, HR Teams, Enterprise Buyers, Decision Makers |
-
-All filters default to "all selected." The function accepts a `container` parameter so filters can be rendered in any Streamlit column or container (they appear in the right-side column on all analytics pages).
-
-### utils/layout.py — Navigation and Global Styling
-
-Manages the top navigation bar and dashboard-wide CSS.
-
-**Navigation:** Renders a horizontal row of `st.page_link` buttons for all 8 pages. The "Ask AI" button (chat page) is visually highlighted with a green gradient background to distinguish it as a CTA.
-
-**Global CSS applied to every page:**
-- Hides the default Streamlit sidebar navigation
-- Styles nav links with hover effects (green background, white text)
-- Styles KPI metric cards with a green left border, light green background
-- Applies consistent typography and spacing
+At each step, some people drop off. The dashboard helps you see **where** the biggest drop-off happens so you can fix it.
 
 ---
 
-## Pages — Detailed Breakdown
+## 4. Every Page Explained in Detail
 
-### Home (`app.py`)
+### Home Page
 
-**Purpose:** Executive snapshot — the first thing a user sees. Provides a high-level summary without requiring any navigation.
+**What you see:** The first screen when you open the dashboard. No filters — it shows everything.
 
-**Layout:** Full-width (no filters sidebar).
+**Layout:** Full width. A row of key numbers at the top, then charts below.
 
-**Content:**
+#### Section 1: Key Metrics (6 cards in a row)
 
-| Section | Visualization | Data Source | Why It's Here |
-|---------|--------------|-------------|---------------|
-| Key Metrics row | 6 `st.metric` cards | `summarize_kpis()` | Instant pulse check — campaigns, impressions, clicks, CTR, conversions, conversion rate |
-| Impressions by Platform | Horizontal bar chart (Plotly) | `platform_metrics()` | Shows which channels drive the most visibility |
-| Marketing Funnel | Funnel chart (Plotly) | `funnel_metrics()` | Visualizes the full pipeline from impressions to conversions with percentage drop at each stage |
-| Campaigns by Content Type | Donut chart (Plotly) | Grouped count of `content_type` | Shows content mix distribution |
-| Leads by Platform | Vertical bar chart (Plotly) | `platform_metrics()` | Compares lead volume across channels |
-| Conversion Rate by Platform | Vertical bar chart (Plotly) | `platform_metrics()` | Compares conversion efficiency across channels |
+| Metric | What It Means |
+|--------|---------------|
+| **Campaigns** | Total number of marketing campaigns in the data. |
+| **Impressions** | Total times your content was displayed across all campaigns. |
+| **Clicks** | Total clicks across all campaigns. |
+| **CTR** | Click-Through Rate — the percentage of people who saw your content and clicked. Formula: (clicks ÷ impressions) × 100. Higher is better. |
+| **Conversions** | Total number of people who became customers. |
+| **Conv. Rate** | Conversion Rate — the percentage of leads who became customers. Formula: (conversions ÷ leads) × 100. Higher is better. |
 
-**Why these specific charts:** The home page answers three executive questions: "How much activity do we have?" (KPIs), "Where are we reaching people?" (platform impressions), and "How efficient is our pipeline?" (funnel + conversion rates).
+#### Section 2: Impressions by Platform (horizontal bar chart)
 
----
+Shows which channel (LinkedIn, Instagram, Email, Website) delivered the most impressions. The longer the bar, the more people saw content on that channel. This answers: "Where are we reaching the most people?"
 
-### Overview (`pages/1_Overview.py`)
+#### Section 3: Marketing Funnel (funnel-shaped chart)
 
-**Purpose:** Detailed campaign-level KPI dashboard with filtering.
+A visual funnel with five stages: Impressions → Clicks → Leads → Qualified Leads → Conversions. Each stage shows the number and what percentage of the original impressions made it that far. You can see where the biggest drop-off occurs.
 
-**Layout:** 3:1 columns (content left, filters right).
+#### Section 4: Campaigns by Content Type (donut chart)
 
-**Content:**
+Shows how your campaigns are distributed across content types (Thought Leadership, Educational Post, Product Highlight, Event Promotion, Case Study). Answers: "What formats are we using most?"
 
-| Section | Visualization | Metrics Shown |
-|---------|--------------|---------------|
-| KPI row 1 | 4 metric cards | Total Campaigns, Total Impressions, Total Clicks, CTR |
-| KPI row 2 | 4 metric cards | Total Leads, Qualified Leads, Total Conversions, Conversion Rate |
-| Campaigns by Platform | Vertical bar chart | Count of campaigns per platform |
-| Campaigns by Content Type | Vertical bar chart | Count of campaigns per content type |
+#### Section 5: Leads by Platform (vertical bar chart)
 
-**Populated by:** `summarize_kpis(filtered_df)` — all 9 KPIs are calculated from the filtered dataset. The bar charts use simple `groupby().count()` on the filtered data.
+Shows which platform generated the most leads. Answers: "Which channel is bringing us the most potential customers?"
 
-**Why it exists:** The Home page shows totals; the Overview page lets users slice by platform, content type, and audience segment using the filters to see how KPIs change for specific subsets.
+#### Section 6: Conversion Rate by Platform (vertical bar chart)
+
+Shows which platform has the highest conversion rate (leads turning into customers). Answers: "Which channel converts best?"
 
 ---
 
-### Channel Performance (`pages/2_Channel_Performance.py`)
+### Overview Page
 
-**Purpose:** Compare marketing channel (platform) effectiveness across the full funnel.
+**What you see:** A detailed KPI dashboard with filters on the right.
 
-**Layout:** 3:1 columns (content left, filters right).
+**Layout:** Main content on the left (about 75% width), filters on the right (about 25% width).
 
-**Content:**
+#### Section 1: Campaign Overview (heading)
 
-| Section | Visualization | What It Shows |
-|---------|--------------|---------------|
-| Engagement & Leads by Platform | Grouped bar chart (3 bars per platform) | Impressions, Clicks, and Leads side by side for each platform |
-| CTR by Platform | Horizontal bar chart (ranked) | Click-through rate for each platform, sorted ascending |
-| Conversion Rate by Platform | Horizontal bar chart (ranked) | Conversion rate for each platform, sorted ascending |
-| Platform Summary | Data table | All metrics per platform: campaigns, impressions, clicks, leads, qualified leads, conversions, CTR, conversion rate, lead rate |
+#### Section 2: First Row of Metrics (4 cards)
 
-**Populated by:** `platform_metrics(filtered_df)` which groups by `platform` and aggregates all engagement and lead columns, then calculates CTR, conversion rate, and lead rate.
+| Metric | What It Means |
+|--------|---------------|
+| **Total Campaigns** | Number of campaigns (filtered if you changed filters). |
+| **Total Impressions** | Total impressions for the filtered data. |
+| **Total Clicks** | Total clicks for the filtered data. |
+| **CTR** | Click-through rate for the filtered data. |
 
-**Why it exists:** Answers "Which channel should we invest more in?" by showing that high reach doesn't always mean high conversion. For example, LinkedIn may have the most impressions but Email may convert better — this page makes that visible.
+#### Section 3: Second Row of Metrics (4 cards)
 
----
+| Metric | What It Means |
+|--------|---------------|
+| **Total Leads** | Total leads generated. |
+| **Qualified Leads** | Total qualified leads. |
+| **Total Conversions** | Total conversions. |
+| **Conversion Rate** | Conversion rate for the filtered data. |
 
-### Content Analysis (`pages/3_Content_Analysis.py`)
+#### Section 4: Campaigns by Platform (bar chart)
 
-**Purpose:** Evaluate which content formats (Thought Leadership, Case Study, etc.) are most effective.
+Shows how many campaigns you ran on each platform. Uses filtered data.
 
-**Layout:** 3:1 columns (content left, filters right).
+#### Section 5: Campaigns by Content Type (bar chart)
 
-**Content:**
+Shows how many campaigns you ran for each content type. Uses filtered data.
 
-| Section | Visualization | What It Shows |
-|---------|--------------|---------------|
-| Engagement Metrics by Content Type | Grouped bar chart (3 bars per type) | Impressions, Clicks, Likes per content type |
-| Leads Generated | Horizontal bar chart | Lead volume per content type |
-| Conversions | Horizontal bar chart | Conversion count per content type |
-| Content Type Performance Ranking | Data table | Campaigns, CTR, conversion rate, lead rate — sorted by conversion rate descending |
-| Top-performer callout | `st.success` banner | Highlights the content type with the highest conversion rate |
-
-**Populated by:** `content_type_metrics(filtered_df)` which groups by `content_type` and computes the same aggregates and rates as `platform_metrics()`.
-
-**Why it exists:** Helps content strategists decide what to produce more of. Event Promotion content may generate the most leads, but Case Study content may have the best conversion rate — this page surfaces those distinctions.
+**Why use this page:** When you want to see how the numbers change when you focus on specific platforms, content types, or audiences. For example: "What are our numbers if we only look at LinkedIn and Email?"
 
 ---
 
-### Funnel Analysis (`pages/4_Funnel_Analysis.py`)
+### Channels Page (Channel Performance)
 
-**Purpose:** Visualize and diagnose the marketing funnel from first impression to final conversion.
+**What you see:** A comparison of how each marketing channel (platform) performs.
 
-**Layout:** 3:1 columns (content left, filters right).
+**Layout:** Main content left, filters right.
 
-**Content:**
+#### Section 1: Engagement & Leads by Platform (grouped bar chart)
 
-| Section | Visualization | What It Shows |
-|---------|--------------|---------------|
-| Marketing Funnel | Plotly Funnel chart | 5 stages: Impressions → Clicks → Leads → Qualified Leads → Conversions. Shows values and percentage of initial. |
-| Stage-to-Stage Progression | Data table | For each transition: from stage, to stage, retention %, drop-off %, volume change |
-| Biggest drop-off | `st.warning` banner | Identifies the worst transition (e.g., "Impressions → Clicks: 95.8% loss") |
-| Funnel by Platform | Dropdown + Funnel chart | Select a platform to see its individual funnel shape |
+Three bars per platform: **Impressions** (blue), **Clicks** (orange), **Leads** (green). Lets you compare reach, engagement, and lead generation side by side for LinkedIn, Instagram, Email, and Website.
 
-**Populated by:** `funnel_metrics(filtered_df)` returns the five-stage funnel values. `get_biggest_dropoff(filtered_df)` identifies the critical transition.
+#### Section 2: CTR by Platform (horizontal bar chart)
 
-**Why it exists:** The funnel is the single most important diagnostic tool. If impressions are high but conversions are low, this page pinpoints exactly where the pipeline breaks. The per-platform funnel dropdown reveals whether the bottleneck is universal or channel-specific.
+Shows click-through rate for each platform, sorted from lowest to highest. Answers: "Which channel gets the most clicks relative to views?"
+
+#### Section 3: Conversion Rate by Platform (horizontal bar chart)
+
+Shows conversion rate for each platform, sorted from lowest to highest. Answers: "Which channel turns leads into customers best?"
+
+#### Section 4: Platform Summary (data table)
+
+A table with every metric for each platform: campaigns, impressions, clicks, leads, qualified leads, conversions, CTR (%), conversion rate (%), and lead rate (%). Lead rate = (leads ÷ clicks) × 100 — how well clicks turn into leads.
+
+**Why use this page:** To decide where to invest more budget. For example: "LinkedIn has high reach but Email converts better — maybe we should shift some spend to Email."
 
 ---
 
-### Claude Insights (`pages/5_Claude_Insights.py`)
+### Content Page (Content Analysis)
 
-**Purpose:** AI-powered (rule-based) intelligence layer that classifies campaigns, diagnoses issues, and generates executive recommendations.
+**What you see:** A comparison of how each content type performs.
 
-**Layout:** 3:1 columns (content left, filters right). Content is split into two tabs.
+**Layout:** Main content left, filters right.
+
+#### Section 1: Engagement Metrics by Content Type (grouped bar chart)
+
+Three bars per content type: **Impressions**, **Clicks**, **Likes**. Shows which content formats get the most views, clicks, and social engagement.
+
+#### Section 2: Leads Generated (horizontal bar chart)
+
+Shows which content type generates the most leads. Answers: "What format brings in the most potential customers?"
+
+#### Section 3: Conversions (horizontal bar chart)
+
+Shows which content type generates the most conversions. Answers: "What format actually closes the most deals?"
+
+#### Section 4: Content Type Performance Ranking (data table)
+
+A table with: Content Type, Campaigns, CTR (%), Conv. Rate (%), Lead Rate (%). Sorted by conversion rate, highest first.
+
+#### Section 5: Top-Performing Content Type (green success banner)
+
+A highlighted message that says which content type has the highest conversion rate and how many campaigns it includes.
+
+**Why use this page:** To decide what content to create more of. For example: "Event Promotion generates the most leads, but Case Study has the best conversion rate — we should do more case studies for bottom-funnel campaigns."
+
+---
+
+### Funnel Page (Funnel Analysis)
+
+**What you see:** A deep dive into the marketing funnel and where people drop off.
+
+**Layout:** Main content left, filters right.
+
+#### Section 1: Marketing Funnel (funnel chart)
+
+The same five-stage funnel as Home: Impressions → Clicks → Leads → Qualified Leads → Conversions. Shows values and percentage of initial. Uses filtered data.
+
+#### Section 2: Stage-to-Stage Progression (data table)
+
+For each transition (e.g., Impressions → Clicks), the table shows:
+
+- **From** — The starting stage
+- **To** — The next stage
+- **Retained** — What percentage of people moved to the next stage (e.g., 4.2% of impressions became clicks)
+- **Drop-off** — What percentage was lost (e.g., 95.8% did not click)
+- **Volume Change** — The actual numbers (e.g., "500,000 → 21,000")
+
+#### Section 3: Biggest Drop-Off (yellow warning banner)
+
+A highlighted message that identifies the worst transition (e.g., "Impressions → Clicks: 95.8% loss, 479,000 volume lost") and says this is the primary area to optimize.
+
+#### Section 4: Funnel by Platform (dropdown + funnel chart)
+
+A dropdown lets you select **All** or a specific platform (LinkedIn, Instagram, Email, Website). The funnel chart below updates to show that platform's funnel. Answers: "Is the bottleneck the same across all channels, or is one channel worse?"
+
+**Why use this page:** To find and fix the biggest leak in your pipeline. If most people drop off between Clicks and Leads, the problem is likely your landing page or CTA, not your ad creative.
+
+---
+
+### Insights Page (Claude-Style Intelligence Layer)
+
+**What you see:** Automated analysis, recommendations, and two ways to consume the insights — visual (Interactive Dashboard) or text (Detailed Report).
+
+**Layout:** Main content left, filters right. Two tabs at the top: **Interactive Dashboard** and **Detailed Report**.
+
+---
 
 #### Tab 1: Interactive Dashboard
 
-| Section | Visualization | What It Shows |
-|---------|--------------|---------------|
-| Executive summary metrics | 6 metric cards (2 rows of 3) | Best reach platform, best conversion platform, funnel efficiency %, biggest drop-off stage, drop-off volume, drop-off % |
-| Platform: Reach vs Conversion | Dual-axis grouped bar chart | Impressions (left axis) vs conversion rate % (right axis) per platform — reveals the reach-vs-efficiency tradeoff |
-| Content: Reach vs Conversion | Dual-axis grouped bar chart | Same comparison for content types |
-| Campaign Classification | 3 donut charts | Distribution by Theme (Awareness/Consideration/Conversion), Intent (Brand Visibility/Education/etc.), and Funnel Stage (Top/Mid/Bottom) |
-| What's Working | `st.success` callout | Bullet points: best reach platform, best conversion platform, best lead-generating content, best converting content |
-| What Needs Attention | `st.warning` callout | Bullet points: biggest drop-off, low overall efficiency, reach ≠ conversion disconnect |
-| Key Recommendations | 5 `st.info` cards (3-column grid) | Actionable recommendations: scale best converter, use best reach channel for awareness, scale best content, add CTAs to high-reach content, fix biggest drop-off |
+##### Row 1: Executive Summary Metrics (6 cards in 2 rows of 3)
 
-**Populated by:**
-- `get_best_platform()`, `get_best_content_type()`, `get_biggest_dropoff()` from `insights.py`
-- `platform_metrics()`, `content_type_metrics()` from `metrics.py`
-- `classify_campaign_theme()`, `classify_campaign_intent()`, `classify_funnel_stage()` from `claude_layer.py`
+| Metric | What It Means |
+|--------|---------------|
+| **Best Reach Platform** | Which platform (LinkedIn, Instagram, Email, Website) has the most impressions. |
+| **Best Conversion Platform** | Which platform has the highest conversion rate. |
+| **Funnel Efficiency** | Overall: (conversions ÷ impressions) × 100. How efficient is the entire pipeline from view to customer? |
+| **Biggest Drop-off Stage** | The stage where the funnel loses the most people (e.g., "Impressions"). |
+| **Drop-off Volume Lost** | How many people were lost at that stage. |
+| **Drop-off Percentage** | What percentage was lost. |
+
+##### Platform: Reach vs Conversion (dual-axis bar chart)
+
+Two bars per platform: **Impressions** (left axis) and **Conv. Rate (%)** (right axis). Shows that high reach doesn't always mean high conversion. A platform can have lots of impressions but a low conversion rate, or vice versa.
+
+##### Content: Reach vs Conversion (dual-axis bar chart)
+
+Same idea for content types: Impressions vs Conversion Rate. Shows which content drives visibility vs which drives conversions.
+
+##### Campaign Classification (3 donut charts)
+
+- **By Theme** — Awareness (top of funnel), Consideration (mid), Conversion (bottom). Based on content type.
+- **By Intent** — Brand Visibility, Education, Product Interest, Event Registration, Trust Building. Based on content type.
+- **By Funnel Stage** — Top-of-Funnel (Awareness), Mid-Funnel (Consideration), Bottom-of-Funnel (Conversion). Based on CTR and conversion rate thresholds per campaign.
+
+##### What's Working (green success box)
+
+Bullet points:
+- Best reach platform
+- Best conversion platform
+- Best lead-generating content type
+- Best converting content type
+
+##### What Needs Attention (yellow warning box)
+
+Bullet points:
+- Biggest funnel drop-off and percentage
+- Overall funnel efficiency
+- Note that high-reach channels don't always convert best
+- Note that some content drives awareness but underperforms on lead quality
+
+##### Key Recommendations (5 blue info cards in a 3-column grid)
+
+Actionable recommendations, for example:
+- Double down on the best conversion platform for conversion campaigns
+- Use the best reach platform as the primary awareness channel
+- Scale the best converting content type
+- Pair high-reach content with stronger CTAs
+- Focus on reducing the biggest drop-off to improve end-to-end conversion
+
+---
 
 #### Tab 2: Detailed Report
 
-| Section | Content | Source Function |
-|---------|---------|-----------------|
-| Campaign Classification | Full table with campaign ID, name, platform, content type, theme, intent, funnel stage | `classify_campaign_theme()`, `classify_campaign_intent()`, `classify_funnel_stage()` applied row-by-row |
-| Platform Performance Summary | Multi-paragraph narrative | `summarize_platform_performance()` |
-| Content Performance Summary | Multi-paragraph narrative | `summarize_content_performance()` |
-| Funnel Diagnosis | Contextual analysis with explanation | `identify_funnel_issue()` |
-| Executive Recommendations | 5 strategic recommendations | `generate_founder_recommendations()` |
-| Executive Summary Report | Narrative synthesis | Inline calculation combining all findings |
+For people who prefer reading over charts.
 
-**Why it exists:** Not everyone reads charts. The Interactive Dashboard is for visual thinkers; the Detailed Report is for readers who want narrative summaries they can copy into board decks or strategy documents. Together they ensure insights are accessible regardless of consumption preference.
+##### Campaign Classification (data table)
 
----
+A table with every campaign and its: ID, Name, Platform, Content Type, Theme, Intent, Funnel Stage. You can see how each campaign is classified.
 
-### Ask AI / Chat (`pages/6_Chat.py`)
+##### Platform Performance Summary (narrative text)
 
-**Purpose:** Natural-language interface for querying campaign data using OpenAI's GPT-4.1-mini.
+A few paragraphs explaining which platform is best for reach, which for conversion, which for leads, and whether there's a split (e.g., "LinkedIn for awareness, Email for conversion").
 
-**Layout:** Full-width (no filters — the chatbot sees all data).
+##### Content Performance Summary (narrative text)
 
-**Content:**
+A few paragraphs explaining which content type drives the most visibility, which has the best conversion rate, and which produces the strongest qualified leads.
 
-| Element | Description |
-|---------|-------------|
-| Chat history | Displays all previous messages using `st.chat_message()` |
-| Input box | `st.chat_input()` at the bottom of the page |
-| AI responses | Streamed from GPT-4.1-mini with the full merged dataset as context |
+##### Funnel Diagnosis (narrative text)
 
-**How it works:**
+Explains the biggest funnel drop-off and what it likely means. For example:
+- Impressions → Clicks: weak creative or poor targeting
+- Clicks → Leads: landing page friction or misaligned expectations
+- Leads → Qualified Leads: targeting too broad
+- Qualified Leads → Conversions: sales process friction or pricing
 
-1. User types a question
-2. `sanitize_input()` checks for injection patterns — if flagged, returns a refusal without calling the API
-3. If safe, `query_llm()` sends the conversation history + system prompt (including full dataset) to OpenAI
-4. Response is validated by `validate_response()` — checked for prompt leakage and length
-5. Both user message and AI response are appended to `st.session_state["chat_history"]` for conversation continuity
+##### Executive Recommendations (narrative text)
 
-**Error handling:** Catches `AuthenticationError` (bad API key), `RateLimitError`, `APIConnectionError`, and generic exceptions — each with a user-friendly message.
+Five strategic recommendations in paragraph form, suitable for copying into a board deck or strategy doc.
 
-**Why it exists:** Dashboards answer pre-defined questions. The chatbot answers ad-hoc questions: "Which campaign had the best CTR?", "Compare LinkedIn and Email for lead generation", "What should I prioritize next quarter?" — things that would require custom code or manual data analysis without it.
+##### Executive Summary Report (narrative text)
+
+A short summary: total campaigns, impressions, conversions, overall funnel efficiency, and that performance varies across platforms and content types.
+
+**Why use this page:** To get automated, data-backed recommendations without building reports manually. The Interactive Dashboard is for quick scanning; the Detailed Report is for deeper reading and sharing.
 
 ---
 
-### Audience Segments (`pages/7_Audience_Segments.py`)
+### Audience Page (Audience Segments)
 
-**Purpose:** Deep-dive into which audience segments convert best and deserve more investment.
+**What you see:** A deep dive into which audience segments perform best.
 
-**Layout:** 3:1 columns (content left, filters right).
+**Layout:** Main content left, filters right.
 
-**Content:**
+#### Section 1: Top 3 Metric Cards
 
-| Section | Visualization | What It Shows |
-|---------|--------------|---------------|
-| Top 3 metrics | Custom HTML cards | Best Reach segment, Best Conversion Rate segment, Best Lead Quality segment (uses custom HTML instead of `st.metric` to avoid text truncation with long segment names) |
-| Engagement & Leads by Segment | Grouped bar chart (3 bars per segment) | Impressions, Clicks, Leads side by side for each audience segment |
-| Conversion Rate by Segment | Horizontal bar chart (ranked) | Which segments turn leads into conversions most effectively |
-| Qualified Lead Rate by Segment | Horizontal bar chart (ranked) | Which segments produce the highest-quality leads |
-| Segment vs Platform Heatmap | Plotly `imshow` heatmap | Conversion rate at the intersection of each segment and platform — color intensity shows performance. Identifies the best segment-platform combinations. |
-| Segment Summary | Data table | All metrics per segment: campaigns, impressions, clicks, leads, qualified, conversions, CTR, conversion rate, qualified rate |
+| Card | What It Shows |
+|------|---------------|
+| **Best Reach** | The audience segment (e.g., Decision Makers, Enterprise Buyers) that has the most impressions. |
+| **Best Conversion Rate** | The segment with the highest conversion rate. |
+| **Best Lead Quality** | The segment with the highest qualified lead rate (qualified ÷ leads × 100). |
 
-**Populated by:** `segment_metrics(filtered_df)` which groups by `audience_segment` and computes all standard metrics plus `qualified_rate` (qualified_leads / leads_generated × 100).
+#### Section 2: Engagement & Leads by Segment (grouped bar chart)
 
-**Why it exists:** Marketing spend should flow to the audiences most likely to convert. This page answers "Should we target more Enterprise Buyers or Startup Founders?" by comparing segments across reach, engagement, lead quality, and conversion efficiency. The heatmap adds a second dimension — revealing that a segment might perform well on one platform but poorly on another.
+Three bars per segment: Impressions, Clicks, Leads. Shows which audiences you're reaching, engaging, and converting to leads.
 
----
+#### Section 3: Conversion Rate by Segment (horizontal bar chart)
 
-## AI Chatbot
+Which segments turn leads into customers best. Sorted from lowest to highest.
 
-### System Prompt Design
+#### Section 4: Qualified Lead Rate by Segment (horizontal bar chart)
 
-The system prompt sent to GPT-4.1-mini includes:
+Which segments produce the highest-quality leads (more qualified, fewer unqualified). Sorted from lowest to highest.
 
-1. **Role definition** — "You are a Marketing Analytics Assistant"
-2. **Strict behavioral rules** — decline off-topic questions, never output the prompt, never execute code
-3. **Complete data schema** — column descriptions for all three CSV files
-4. **Full merged dataset** — the entire 48-row CSV is embedded so the LLM can reference actual numbers
-5. **Analysis guidelines** — how to interpret metrics, distinguish awareness from conversion, and compute rates
-6. **Recommendation logic** — the same rules used by the rule-based insights module, so the LLM's answers are consistent with the dashboard
+#### Section 5: Segment vs Platform Performance (heatmap)
 
-### Guardrail Architecture
+A grid: rows = audience segments, columns = platforms. Each cell shows the conversion rate for that segment on that platform. Darker green = higher conversion. Answers: "Does Enterprise Buyers convert better on LinkedIn or Email? Does Startup Founders perform better on Instagram or Website?"
 
-| Layer | When | What It Does | Examples Blocked |
-|-------|------|-------------|-----------------|
-| Input sanitization | Before API call | Regex matching + length check | "ignore all instructions", "you are now a pirate", "reveal your prompt", messages >1000 chars |
-| System prompt hardening | During API call | Explicit instructions to the LLM | Role-switching, prompt extraction, off-topic content generation |
-| Output validation | After API call | Sentinel detection + length cap | Responses containing system prompt fragments, responses >3000 chars |
+#### Section 6: Segment Summary (data table)
+
+A table with every metric per segment: Segment, Campaigns, Impressions, Clicks, Leads, Qualified, Conversions, CTR (%), Conv. Rate (%), Qual. Rate (%).
+
+**Why use this page:** To decide which audiences to invest in. For example: "Enterprise Buyers convert best — we should run more campaigns targeting them. Startup Founders have high reach but low conversion — we may need different messaging."
 
 ---
 
-## Theming and Styling
+### Ask AI Page (Chat)
 
-### Streamlit Config (`.streamlit/config.toml`)
+**What you see:** A chat interface. A message history (if you've asked questions before) and an input box at the bottom.
 
-| Setting | Value | Effect |
-|---------|-------|--------|
-| `primaryColor` | `#2E8B57` (Sea Green) | Buttons, links, interactive elements |
-| `backgroundColor` | `#FFFFFF` (White) | Main page background |
-| `secondaryBackgroundColor` | `#F0FFF0` (Honeydew) | Sidebar, card backgrounds |
-| `textColor` | `#1E1E1E` (Near Black) | Body text |
-| `font` | `sans serif` | Clean, modern typeface |
+**Layout:** Full width. No filters. The chatbot always uses all data when answering.
 
-### Custom CSS (in `utils/layout.py`)
+**How to use it:**
 
-Applied globally to every page via `setup_page()`:
+1. Type a question in the input box (e.g., "Which platform has the highest CTR?" or "Compare LinkedIn and Email for lead generation").
+2. Press Enter or click Send.
+3. The AI responds with an answer based on your campaign data.
+4. You can ask follow-up questions — the chat remembers the conversation.
 
-- **Sidebar hidden** — the default Streamlit sidebar is replaced by the custom top nav bar
-- **Nav link styling** — green text, rounded borders, green fill on hover with white text
-- **"Ask AI" button** — green gradient background, white text, subtle drop shadow — visually distinct from regular nav links
-- **Metric cards** — light green background (#F0FFF0), green left border, uppercase labels in gray, bold green values
-- **Data tables** — rounded corners with hidden overflow
-- **Typography** — H1 is 800 weight; H1/H2/H3 are near-black
+**What you can ask:**
 
----
+- "Which campaign had the best conversion rate?"
+- "How many leads did we get from LinkedIn?"
+- "What should we prioritize next quarter?"
+- "Compare Event Promotion vs Case Study content."
 
-## Filters
+**Requirements:** The Ask AI feature uses OpenAI's GPT-4.1-mini model. You need to set the `OPENAI_API_KEY` environment variable with a valid OpenAI API key. Without it, you'll see an error when you try to ask a question.
 
-All analytics pages (Overview, Channels, Content, Funnel, Insights, Audience) share the same filter panel rendered in the right-side column.
-
-**How they work:**
-
-1. `apply_filters(container)` in `utils/filters.py` is called with the right column as the container
-2. Inside that container, three `st.multiselect` widgets are rendered
-3. The function loads the full merged dataset, applies the selected filter values using boolean indexing, and returns the filtered DataFrame
-4. The calling page receives only the filtered data — all metrics and charts automatically reflect the current filter state
-
-**Filter state** is managed by Streamlit's `st.session_state` via unique widget keys (`filter_platform`, `filter_content_type`, `filter_audience_segment`).
+**Safety:** The chatbot has guardrails to prevent misuse. It only answers questions about your marketing data. It will refuse off-topic questions or attempts to change its behavior.
 
 ---
 
-## Navigation System
+## 5. Understanding the Metrics
 
-The top navigation bar is rendered by `_render_nav()` in `utils/layout.py` and appears on every page via the `setup_page()` call.
+### Core Metrics (Used Throughout the Dashboard)
 
-**Pages in order:**
+| Metric | Formula | Plain-Language Meaning |
+|--------|---------|------------------------|
+| **CTR (Click-Through Rate)** | (clicks ÷ impressions) × 100 | Of everyone who saw your content, what percentage clicked? Higher = more engaging content or better targeting. |
+| **Conversion Rate** | (conversions ÷ leads) × 100 | Of everyone who became a lead, what percentage became a customer? Higher = better lead quality or sales process. |
+| **Lead Rate** | (leads ÷ clicks) × 100 | Of everyone who clicked, what percentage became a lead? Higher = better landing page or CTA. |
+| **Qualified Rate** | (qualified leads ÷ leads) × 100 | Of everyone who became a lead, what percentage met your qualification criteria? Higher = better targeting or lead quality. |
+| **Funnel Efficiency** | (conversions ÷ impressions) × 100 | Of everyone who saw your content, what percentage became a customer? The end-to-end efficiency of your pipeline. |
+| **Drop-off %** | (current stage − next stage) ÷ current stage × 100 | What percentage of people left the funnel at this step? |
+| **Retention %** | next stage ÷ current stage × 100 | What percentage of people moved to the next step? |
 
-| Nav Label | File | Description |
-|-----------|------|-------------|
-| Home | `app.py` | Landing page with executive snapshot |
-| Overview | `pages/1_Overview.py` | KPI dashboard with filters |
-| Channels | `pages/2_Channel_Performance.py` | Platform comparison |
-| Content | `pages/3_Content_Analysis.py` | Content type analysis |
-| Funnel | `pages/4_Funnel_Analysis.py` | Funnel visualization and diagnosis |
-| Insights | `pages/5_Claude_Insights.py` | Intelligence layer (visual + report) |
-| Audience | `pages/7_Audience_Segments.py` | Segment deep-dive |
-| Ask AI | `pages/6_Chat.py` | AI chatbot (highlighted as CTA) |
+### Funnel Stages (In Order)
 
-The "Ask AI" link is rendered with a distinct green gradient to draw attention as a call-to-action.
+1. **Impressions** — Content was displayed.
+2. **Clicks** — Someone clicked.
+3. **Leads** — Someone gave contact info.
+4. **Qualified Leads** — Lead met qualification criteria.
+5. **Conversions** — Lead became a customer.
 
 ---
 
-## Configuration
+## 6. The Filters — How They Work
 
-### Hot Reload
+### Where Filters Appear
 
-`.streamlit/config.toml` includes:
+Filters appear on the **right side** of these pages: Overview, Channels, Content, Funnel, Insights, Audience.
 
-```toml
-[server]
-runOnSave = true
-fileWatcherType = "auto"
+### Filter Options
+
+| Filter | Options | What It Does |
+|--------|---------|--------------|
+| **Platform** | LinkedIn, Instagram, Email, Website | Include only campaigns from the selected platforms. Uncheck a platform to exclude it. |
+| **Content Type** | Thought Leadership, Educational Post, Product Highlight, Event Promotion, Case Study | Include only campaigns of the selected content types. |
+| **Audience Segment** | L&D Leaders, Startup Founders, HR Teams, Enterprise Buyers, Decision Makers | Include only campaigns targeting the selected audiences. |
+
+### Default State
+
+All options are selected by default. You see data for everything.
+
+### How It Updates
+
+When you change a filter (add or remove a selection), the page **updates immediately**. All charts, tables, and numbers on that page reflect only the filtered data. You don't need to click a "Apply" button.
+
+### Example Use
+
+- "Show me only LinkedIn and Email" → Uncheck Instagram and Website in Platform.
+- "Show me only Event Promotion and Case Study" → Uncheck the others in Content Type.
+- "Show me only campaigns targeting Enterprise Buyers" → Uncheck the others in Audience Segment.
+
+---
+
+## 7. The Ask AI Chatbot
+
+### What It Is
+
+A chat interface where you type questions in plain English and get answers based on your campaign data. It uses OpenAI's GPT-4.1-mini model.
+
+### What You Need
+
+- An **OpenAI API key**. Set it as the environment variable `OPENAI_API_KEY` before running the app.
+- **Internet connection** — the chatbot sends your question to OpenAI's servers.
+
+### What It Can Answer
+
+- Questions about campaigns, platforms, content types, audiences
+- Comparisons (e.g., "Compare LinkedIn and Email")
+- Recommendations (e.g., "What should we focus on?")
+- Specific numbers (e.g., "How many conversions did we get from Event Promotion?")
+
+### What It Won't Do
+
+- Answer questions unrelated to your marketing data
+- Execute code or run scripts
+- Reveal its internal instructions or prompt
+- Follow instructions that try to change its role or behavior
+
+### How It Works (Behind the Scenes)
+
+1. Your question is checked for safety (length, suspicious patterns).
+2. If safe, your question plus the full dataset is sent to OpenAI.
+3. The AI generates an answer based on the data.
+4. The answer is checked before being shown to you.
+5. Your question and the answer are saved in the chat so you can ask follow-ups.
+
+---
+
+## 8. Technical Architecture (For Developers)
+
+### High-Level Flow
+
+```
+User opens dashboard in browser
+    ↓
+Streamlit serves the app (app.py = Home page)
+    ↓
+User navigates to a page (e.g., Overview, Channels)
+    ↓
+Page loads data via data_loader (reads 3 CSVs, merges on campaign_id)
+    ↓
+Page applies filters (if any) and passes filtered data to metrics/insights functions
+    ↓
+Page renders charts (Plotly) and tables (Streamlit) with the results
 ```
 
-This enables automatic page refresh whenever a source file is saved — useful during development.
+### Key Files and Their Roles
 
-### Environment Variables
+| File | Role |
+|------|------|
+| **app.py** | Home page. Entry point. Loads data, shows KPIs and charts. No filters. |
+| **pages/1_Overview.py** | Overview page. KPIs + bar charts. Has filters. |
+| **pages/2_Channel_Performance.py** | Channels page. Platform comparison. Has filters. |
+| **pages/3_Content_Analysis.py** | Content page. Content type comparison. Has filters. |
+| **pages/4_Funnel_Analysis.py** | Funnel page. Funnel chart + stage table + per-platform funnel. Has filters. |
+| **pages/5_Claude_Insights.py** | Insights page. Interactive Dashboard + Detailed Report tabs. Has filters. |
+| **pages/6_Chat.py** | Ask AI page. Chat interface. No filters. Uses full data. |
+| **pages/7_Audience_Segments.py** | Audience page. Segment analysis + heatmap. Has filters. |
+| **utils/data_loader.py** | Loads campaigns.csv, engagement.csv, leads.csv. Merges on campaign_id. |
+| **utils/metrics.py** | KPI formulas (CTR, conversion rate, lead rate) and aggregations (platform_metrics, content_type_metrics, segment_metrics, funnel_metrics, summarize_kpis). |
+| **utils/insights.py** | Rule-based insights: get_best_platform, get_best_content_type, get_biggest_dropoff, get_recommendations. |
+| **utils/claude_layer.py** | Campaign classification (theme, intent, funnel stage) and narrative summaries (platform, content, funnel diagnosis, founder recommendations). |
+| **utils/chatbot.py** | OpenAI integration. System prompt, input sanitization, output validation, query_llm. |
+| **utils/filters.py** | Renders Platform, Content Type, Audience Segment multiselects. Returns filtered DataFrame. |
+| **utils/layout.py** | Renders top nav bar, applies global CSS, setup_page(). |
 
-| Variable | Required | Used By | Purpose |
-|----------|----------|---------|---------|
-| `OPENAI_API_KEY` | Only for Chat page | `utils/chatbot.py` | Authenticates with OpenAI API |
+### Data Flow
 
-Set in PowerShell: `$env:OPENAI_API_KEY = "sk-..."` or in bash: `export OPENAI_API_KEY="sk-..."`.
+1. `load_merged_data()` in data_loader.py reads all three CSVs and joins them on `campaign_id`.
+2. `apply_filters(container)` in filters.py loads the merged data, renders the filter widgets in the given container, and returns a filtered DataFrame based on user selections.
+3. Each page passes the (filtered) DataFrame to the relevant functions in metrics.py, insights.py, and claude_layer.py.
+4. Results are rendered as Streamlit components (st.metric, st.plotly_chart, st.dataframe, etc.).
 
 ---
 
-## Full Project Structure
+## 9. Project File Structure
 
 ```
 marketing_analytics/
 ├── .streamlit/
-│   └── config.toml                    # Theme + hot reload config
+│   └── config.toml              # Theme colors, hot reload settings
 ├── data/
-│   ├── campaigns.csv                  # 48 campaigns with metadata
-│   ├── engagement.csv                 # Impressions, clicks, likes, comments, shares
-│   └── leads.csv                      # Leads, qualified leads, conversions
+│   ├── campaigns.csv            # 48 campaigns: name, platform, content type, audience, date
+│   ├── engagement.csv           # Impressions, clicks, likes, comments, shares per campaign
+│   └── leads.csv                # Leads, qualified leads, conversions per campaign
 ├── pages/
-│   ├── 1_Overview.py                  # KPI dashboard with filters
-│   ├── 2_Channel_Performance.py       # Platform comparison
-│   ├── 3_Content_Analysis.py          # Content type analysis
-│   ├── 4_Funnel_Analysis.py           # Funnel visualization + diagnosis
-│   ├── 5_Claude_Insights.py           # Intelligence layer (visual + narrative)
-│   ├── 6_Chat.py                      # AI chatbot interface
-│   └── 7_Audience_Segments.py         # Audience segment deep-dive
+│   ├── 1_Overview.py            # KPI dashboard with filters
+│   ├── 2_Channel_Performance.py # Platform comparison
+│   ├── 3_Content_Analysis.py    # Content type analysis
+│   ├── 4_Funnel_Analysis.py     # Funnel visualization and diagnosis
+│   ├── 5_Claude_Insights.py     # Insights (Interactive Dashboard + Detailed Report)
+│   ├── 6_Chat.py                # Ask AI chatbot
+│   └── 7_Audience_Segments.py   # Audience segment deep-dive
 ├── utils/
-│   ├── __init__.py
-│   ├── chatbot.py                     # OpenAI API + 3-layer guardrails
-│   ├── claude_layer.py                # Rule-based campaign classification + summaries
-│   ├── data_loader.py                 # CSV loading + merging
-│   ├── filters.py                     # Interactive filter widgets
-│   ├── insights.py                    # Rule-based business insights
-│   ├── layout.py                      # Navigation bar + global CSS
-│   └── metrics.py                     # KPI formulas + aggregation functions
-├── app.py                             # Home page / entry point
-├── requirements.txt                   # Python dependencies
-└── README.md                          # Setup and run instructions
+│   ├── chatbot.py               # OpenAI API + guardrails
+│   ├── claude_layer.py          # Campaign classification + narrative summaries
+│   ├── data_loader.py           # CSV loading and merging
+│   ├── filters.py               # Filter widgets
+│   ├── insights.py              # Rule-based business insights
+│   ├── layout.py                # Navigation bar + global CSS
+│   └── metrics.py               # KPI formulas + aggregations
+├── app.py                       # Home page (entry point)
+├── requirements.txt             # Python dependencies
+├── README.md                    # Setup and run instructions
+└── PROJECT_DOCUMENTATION.md     # This file
 ```
 
 ---
 
-## Metrics Reference
+## 10. Setup and Configuration
 
-Quick reference for every metric used in the dashboard:
+### Running the Dashboard Locally
 
-| Metric | Formula | Interpretation |
-|--------|---------|----------------|
-| **CTR** (Click-Through Rate) | clicks / impressions × 100 | How effectively content drives engagement from views |
-| **Conversion Rate** | conversions / leads_generated × 100 | How effectively leads turn into customers |
-| **Lead Rate** | leads_generated / clicks × 100 | How effectively clicks turn into leads |
-| **Qualified Rate** | qualified_leads / leads_generated × 100 | Lead quality — what proportion of leads are sales-ready |
-| **Funnel Efficiency** | conversions / impressions × 100 | End-to-end pipeline efficiency |
-| **Drop-off %** | (current_stage - next_stage) / current_stage × 100 | Volume lost at each funnel transition |
-| **Retention %** | next_stage / current_stage × 100 | Volume preserved at each funnel transition |
+1. Install Python 3.10 or higher.
+2. Create a virtual environment: `python -m venv venv`
+3. Activate it: `venv\Scripts\activate` (Windows) or `source venv/bin/activate` (Mac/Linux)
+4. Install dependencies: `pip install -r requirements.txt`
+5. Set OpenAI API key (for Ask AI): `$env:OPENAI_API_KEY = "sk-..."` (PowerShell) or `export OPENAI_API_KEY="sk-..."` (Mac/Linux)
+6. Run the app: `streamlit run app.py`
+7. Open the URL shown (usually http://localhost:8501)
 
-**Funnel stages (in order):** Impressions → Clicks → Leads → Qualified Leads → Conversions
+### Theme and Hot Reload
+
+The `.streamlit/config.toml` file sets:
+
+- **Theme** — Sea green (#2E8B57) as primary color, white background, light green for cards
+- **Hot reload** — The app automatically refreshes when you save a file (for development)
+
+### Environment Variables
+
+| Variable | Required For | Purpose |
+|----------|--------------|---------|
+| `OPENAI_API_KEY` | Ask AI (Chat) page | Authenticates with OpenAI API. Without it, the Chat page will show an error when you ask a question. |
+
+---
+
+*This document was written to be useful for both non-technical readers (business users, marketers, executives) and technical readers (developers, analysts). If you have questions or find something unclear, please update this document or reach out to the project maintainer.*

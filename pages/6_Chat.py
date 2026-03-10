@@ -14,6 +14,28 @@ st.caption(
 
 if "chat_history" not in st.session_state:
     st.session_state["chat_history"] = []
+if "chat_usage" not in st.session_state:
+    st.session_state["chat_usage"] = {
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "total_tokens": 0,
+        "request_count": 0,
+    }
+
+# --- Usage metrics (session) ---
+u = st.session_state["chat_usage"]
+if u["request_count"] > 0:
+    with st.expander("📊 API usage this session", expanded=False):
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Prompt tokens", f"{u['prompt_tokens']:,}")
+        c2.metric("Completion tokens", f"{u['completion_tokens']:,}")
+        c3.metric("Total tokens", f"{u['total_tokens']:,}")
+        c4.metric("Requests", u["request_count"])
+        # GPT-4.1-mini approx: $0.15/1M input, $0.60/1M output (as of 2024)
+        est_cost = (u["prompt_tokens"] * 0.15 + u["completion_tokens"] * 0.60) / 1_000_000
+        st.caption(f"Estimated cost this session: ~${est_cost:.4f} (GPT-4.1-mini pricing). Check [platform.openai.com](https://platform.openai.com/usage) for account limits.")
+
+st.markdown("")
 
 for msg in st.session_state["chat_history"]:
     with st.chat_message(msg["role"]):
@@ -45,7 +67,11 @@ if user_input:
                 for m in st.session_state["chat_history"]
             ]
             with st.spinner("Thinking…"):
-                reply = query_llm(conversation, df)
+                reply, usage_dict = query_llm(conversation, df)
+            st.session_state["chat_usage"]["prompt_tokens"] += usage_dict["prompt_tokens"]
+            st.session_state["chat_usage"]["completion_tokens"] += usage_dict["completion_tokens"]
+            st.session_state["chat_usage"]["total_tokens"] += usage_dict["total_tokens"]
+            st.session_state["chat_usage"]["request_count"] += 1
         except ValueError as exc:
             reply = str(exc)
         except openai.AuthenticationError:
