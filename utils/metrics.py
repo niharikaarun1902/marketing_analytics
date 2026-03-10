@@ -90,6 +90,34 @@ def content_type_metrics(df: pd.DataFrame) -> pd.DataFrame:
     return agg
 
 
+def segment_metrics(df: pd.DataFrame) -> pd.DataFrame:
+    agg = df.groupby("audience_segment").agg(
+        impressions=("impressions", "sum"),
+        clicks=("clicks", "sum"),
+        likes=("likes", "sum"),
+        comments=("comments", "sum"),
+        shares=("shares", "sum"),
+        leads_generated=("leads_generated", "sum"),
+        qualified_leads=("qualified_leads", "sum"),
+        conversions=("conversions", "sum"),
+        campaigns=("campaign_id", "count"),
+    ).reset_index()
+
+    agg["ctr"] = agg.apply(lambda r: round(calculate_ctr(r["clicks"], r["impressions"]), 2), axis=1)
+    agg["conversion_rate"] = agg.apply(
+        lambda r: round(calculate_conversion_rate(r["conversions"], r["leads_generated"]), 2), axis=1
+    )
+    agg["lead_rate"] = agg.apply(
+        lambda r: round(calculate_lead_rate(r["leads_generated"], r["clicks"]), 2), axis=1
+    )
+    agg["qualified_rate"] = agg.apply(
+        lambda r: round(
+            (r["qualified_leads"] / r["leads_generated"] * 100) if r["leads_generated"] else 0.0, 2
+        ), axis=1
+    )
+    return agg
+
+
 def funnel_metrics(df: pd.DataFrame) -> list[dict]:
     stages = [
         ("Impressions", int(df["impressions"].sum())),

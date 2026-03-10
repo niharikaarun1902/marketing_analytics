@@ -1,0 +1,44 @@
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Environment variables / secrets
+.env
+.env.*
+*.key
+credentials.json
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Byte-compiled / cached
+*.pyc
+*.pdb
+
+# Jupyter (if any)
+.ipynb_checkpoints/
+
+# Claude / Cursor project files
+.claude/
