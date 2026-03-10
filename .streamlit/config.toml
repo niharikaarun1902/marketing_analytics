@@ -1,6 +1,6 @@
 [server]
 runOnSave = true
-fileWatcherType = "auto"
+fileWatcherType = "poll"
 
 [theme]
 primaryColor = "#2E8B57"

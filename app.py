@@ -68,31 +68,22 @@ with left2:
     st.markdown("#### Campaigns by Content Type")
     ct_counts = df.groupby("content_type")["campaign_id"].count().reset_index()
     ct_counts.columns = ["Content Type", "Campaigns"]
-    total = ct_counts["Campaigns"].sum()
-    # Largest-remainder method so displayed percentages sum to 100
-    exact_pct = ct_counts["Campaigns"] / total * 100
-    floor_pct = exact_pct.apply(int)
-    remainder = exact_pct - floor_pct
-    to_add = 100 - floor_pct.sum()
-    for _ in range(int(to_add)):
-        idx = remainder.idxmax()
-        floor_pct.loc[idx] += 1
-        remainder.loc[idx] = -1
-    ct_counts["pct_label"] = floor_pct.astype(int).astype(str) + "%"
-    fig3 = px.pie(
-        ct_counts,
-        names="Content Type",
-        values="Campaigns",
-        hole=0.45,
-        text="pct_label",
-    )
-    fig3.update_traces(textposition="inside", textinfo="label+text")
-    fig3.update_layout(
-        margin=dict(l=20, r=20, t=40, b=80),
-        height=320,
-        legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
-    )
-    st.plotly_chart(fig3, use_container_width=True)
+    if ct_counts["Campaigns"].sum() > 0:
+        fig3 = px.pie(
+            ct_counts,
+            names="Content Type",
+            values="Campaigns",
+            hole=0.45,
+        )
+        fig3.update_traces(textposition="inside", textinfo="label+value")
+        fig3.update_layout(
+            margin=dict(l=20, r=20, t=40, b=80),
+            height=320,
+            legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5),
+        )
+        st.plotly_chart(fig3, use_container_width=True)
+    else:
+        st.info("No campaign data to display.")
 
 with mid2:
     st.markdown("#### Leads by Platform")
